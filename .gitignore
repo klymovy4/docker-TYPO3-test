@@ -1,0 +1,5 @@
+.idea
+.env
+public/mysql/.data
+public/html/
+public/php7-fpm/config/bash_history.txt

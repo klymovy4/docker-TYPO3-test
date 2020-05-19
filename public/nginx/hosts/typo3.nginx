@@ -1,0 +1,41 @@
+server {
+    listen 80;
+    server_name typo3.local www.typo3.local;
+    root /var/www/html/typo3/public;
+    index  index.php index.html;
+    charset utf-8;
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php7.conf;
+    }
+
+    # Block access to hidden" directories or files.
+    location ~ /\. {
+      deny all;
+      access_log off;
+      log_not_found off;
+    }
+
+    # Restrict access to TypoScript files in default templates directories
+    location ~ ^/fileadmin/templates/.*(\.txt|\.ts)$ {
+      deny all;
+      access_log off;
+      log_not_found off;
+    }
+
+    # Restrict access to Private extension directories
+    location ~ ^/typo3conf/ext/[^/]+/Resources/Private/ {
+      deny all;
+      access_log off;
+      log_not_found off;
+    }
+
+    # Main URL rewriting
+    location / {
+      try_files $uri $uri/ /index.php$is_args$args;
+    }
+
+    error_log /var/log/nginx/typo3_error.log;
+    access_log /var/log/nginx/typo3_access.log;
+}
+

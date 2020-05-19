@@ -1,0 +1,70 @@
+version: "3"
+
+services:
+  nginx:
+    container_name: nginx
+    build: ./public/nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./public/nginx/hosts:/etc/nginx/sites-available
+      - ./public/nginx/snippets:/etc/nginx/snippets
+      - ./public/common/.bashrc:/root/.bashrc
+      - ./public/html:/var/www/html
+    links:
+      - php7-fpm
+    networks:
+      docker-network:
+        ipv4_address: 172.20.128.1
+
+  php7-fpm:
+    container_name: php7-fpm
+    env_file:
+        - .env
+    build:
+      context: ./public/php7-fpm
+      args:
+        github_oauth: ${GITHUB_OAUTH}
+        ssh_prv_key: ${SSH_PRV_KEY}
+        ssh_pub_key: ${SSH_PUB_KEY}
+    networks:
+      docker-network:
+        ipv4_address: 172.20.128.2
+    volumes:
+      - ./public/php7-fpm/bootstrap.sh:/bootstrap.sh
+      - ./public/php7-fpm/config/php.d:/usr/local/etc/php/conf.d
+      - ./public/php7-fpm/config/bash_history:/home/docker/.bash_history
+      - ./public/php7-fpm/config/php.ini:/usr/local/etc/php/php.ini
+      - ./public/php7-fpm/config/php-fpm.d/www.conf:/usr/local/etc/php-fpm.d/www.conf
+      - ./public/common/.bashrc:/home/docker/.bashrc
+      - ./public/html:/var/www/html
+    environment:
+      HISTFILE: /home/docker/.bash_history/history
+      PHP_XDEBUG_ENABLED: 1.
+      XDEBUG_CONFIG: "remote_host=172.17.0.1 remote_port=9000"
+      # With profiler
+      #XDEBUG_CONFIG: "remote_host=172.17.0.1 remote_port=9000 profiler_enable_trigger=1 profiler_output_dir=/opt/project_config"
+    user: docker
+
+  db:
+    image: mysql:5.7
+    container_name: mysql_5.7
+    volumes:
+      - ./public/mysql/.data/db:/var/lib/mysql
+      - ./public/mysql/var/:/opt
+      - ./public/mysql/conf/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+    environment:
+      MYSQL_USER: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_PASSWORD: ""
+    ports:
+      - "3307:3306"
+    networks:
+      docker-network:
+        ipv4_address: 172.20.128.3
+
+networks:
+  docker-network:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
